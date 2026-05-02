@@ -13,9 +13,11 @@ try:
 
     from rlbench.environment import Environment
     from rlbench.action_modes.action_mode import ActionMode, ArmActionMode, GripperActionMode
-    from rlbench.observation_config import ObservationConfig
-    from rlbench.observation_config import CameraConfig
     from rlbench.sim2real.domain_randomization import RandomizeEvery
     from rlbench.sim2real.domain_randomization import VisualRandomizationConfig
 except ModuleNotFoundError:
     pass
+
+# These don't need pyrep — always export them
+from rlbench.observation_config import ObservationConfig
+from rlbench.observation_config import CameraConfig

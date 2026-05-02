@@ -1,4 +1,8 @@
-from pyrep.const import RenderMode
+try:
+    from pyrep.const import RenderMode
+except ModuleNotFoundError:
+    class RenderMode:
+        OPENGL3 = None
 from rlbench.noise_model import NoiseModel, Identity
 from termcolor import colored
 
