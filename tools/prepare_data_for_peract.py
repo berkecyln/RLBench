@@ -49,6 +49,9 @@ def convert_dictionary_to_rlbench(original_path, scene, episodes, generated_path
             original_demo = pickle.load(file)
             file.close()
 
+            with open(original_description_path, 'rb') as f:
+                descriptions = pickle.load(f)
+
             # the converted demo
             new_demo = []
 
@@ -57,13 +60,24 @@ def convert_dictionary_to_rlbench(original_path, scene, episodes, generated_path
 
                 # the misc dictionary contains the camera intrinsics, extrinsics, near and far
                 misc = {}
+                TARGET_W, TARGET_H = 128, 128
                 for camera in cameras:
                     d = {}
-                    d["%s_camera_intrinsics" % camera] = observation["%s_camera_intrinsics" % camera]
+                    K = observation["%s_camera_intrinsics" % camera].copy()
+                    orig_w = observation["%s_camera_width" % camera]
+                    orig_h = observation["%s_camera_height" % camera]
+                    K[0, 0] *= TARGET_W / orig_w   # fx
+                    K[0, 2] *= TARGET_W / orig_w   # cx
+                    K[1, 1] *= TARGET_H / orig_h   # fy
+                    K[1, 2] *= TARGET_H / orig_h   # cy
+                    d["%s_camera_intrinsics" % camera] = K
                     d["%s_camera_extrinsics" % camera] = observation["%s_camera_extrinsics" % camera]
                     d["%s_camera_near" % camera] = observation["%s_camera_near" % camera]
                     d["%s_camera_far" % camera] = observation["%s_camera_far" % camera]
                     misc.update(d)
+
+                if len(new_demo) == 0:
+                    misc['descriptions'] = descriptions
 
                 # create the observation object
                 o = Observation(
@@ -175,7 +189,7 @@ def merge_generated_data(generated_path, output_path, scenes, starting_index=0):
             total_episodes_counter += 1
 
             # get the generated episodes
-            path = os.path.join(args.generated_path, f"{task}_episode{episode}_start")
+            path = os.path.join(generated_path, f"{task}_episode{episode}_start")
             gen_episodes = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
             all_task_paths += gen_episodes
 

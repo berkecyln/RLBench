@@ -7,10 +7,24 @@ from typing import List
 import numpy as np
 from PIL import Image
 from natsort import natsorted
-from pyrep.objects import VisionSensor
-
 from rlbench.backend.const import *
 from rlbench.backend.utils import image_to_float_array, rgb_handles_to_mask
+
+
+def _pointcloud_from_depth_and_camera_params(depth_m, extrinsics, intrinsics):
+    """Pure numpy replacement for VisionSensor.pointcloud_from_depth_and_camera_params.
+    extrinsics is T_w2c (world-to-camera); invert to transform camera points to world."""
+    H, W = depth_m.shape
+    fx, fy = intrinsics[0, 0], intrinsics[1, 1]
+    cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+    u, v = np.meshgrid(np.arange(W), np.arange(H))
+    x = (u - cx) * depth_m / fx
+    y = (v - cy) * depth_m / fy
+    xyz_cam = np.stack([x, y, depth_m], axis=-1)
+    T_c2w = np.linalg.inv(extrinsics)
+    R = T_c2w[:3, :3]
+    t = T_c2w[:3, 3]
+    return (xyz_cam @ R.T + t).astype(np.float32)
 from rlbench.demo import Demo
 from rlbench.observation_config import ObservationConfig
 
@@ -254,27 +268,27 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         obs[i].front_depth = None
 
                 if obs_config.left_shoulder_camera.point_cloud:
-                    obs[i].left_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
+                    obs[i].left_shoulder_point_cloud = _pointcloud_from_depth_and_camera_params(
                         l_sh_depth_m,
                         obs[i].misc['left_shoulder_camera_extrinsics'],
                         obs[i].misc['left_shoulder_camera_intrinsics'])
                 if obs_config.right_shoulder_camera.point_cloud:
-                    obs[i].right_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
+                    obs[i].right_shoulder_point_cloud = _pointcloud_from_depth_and_camera_params(
                         r_sh_depth_m,
                         obs[i].misc['right_shoulder_camera_extrinsics'],
                         obs[i].misc['right_shoulder_camera_intrinsics'])
                 if obs_config.overhead_camera.point_cloud:
-                    obs[i].overhead_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
+                    obs[i].overhead_point_cloud = _pointcloud_from_depth_and_camera_params(
                         oh_depth_m,
                         obs[i].misc['overhead_camera_extrinsics'],
                         obs[i].misc['overhead_camera_intrinsics'])
                 if obs_config.wrist_camera.point_cloud:
-                    obs[i].wrist_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
+                    obs[i].wrist_point_cloud = _pointcloud_from_depth_and_camera_params(
                         wrist_depth_m,
                         obs[i].misc['wrist_camera_extrinsics'],
                         obs[i].misc['wrist_camera_intrinsics'])
                 if obs_config.front_camera.point_cloud:
-                    obs[i].front_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
+                    obs[i].front_point_cloud = _pointcloud_from_depth_and_camera_params(
                         front_depth_m,
                         obs[i].misc['front_camera_extrinsics'],
                         obs[i].misc['front_camera_intrinsics'])
