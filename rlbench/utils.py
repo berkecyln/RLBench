@@ -64,9 +64,8 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
             task_name, task_root))
 
     # Sample an amount of examples for the variation of this task
-    examples_path = join(
-        task_root, VARIATIONS_FOLDER % variation_number,
-        EPISODES_FOLDER)
+    variation_folder = 'all_variations' if variation_number == -1 else VARIATIONS_FOLDER % variation_number
+    examples_path = join(task_root, variation_folder, EPISODES_FOLDER)
     examples = listdir(examples_path)
     if amount == -1:
         amount = len(examples)
@@ -105,12 +104,13 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
 
         num_steps = len(obs)
 
-        if not (num_steps == len(listdir(l_sh_rgb_f)) == len(
-                listdir(l_sh_depth_f)) == len(listdir(r_sh_rgb_f)) == len(
-                listdir(r_sh_depth_f)) == len(listdir(oh_rgb_f)) == len(
-                listdir(oh_depth_f)) == len(listdir(wrist_rgb_f)) == len(
-                listdir(wrist_depth_f)) == len(listdir(front_rgb_f)) == len(
-                listdir(front_depth_f))):
+        def _folder_count(path):
+            return len(listdir(path)) if exists(path) else num_steps
+        if not (num_steps == _folder_count(l_sh_rgb_f) == _folder_count(l_sh_depth_f)
+                == _folder_count(r_sh_rgb_f) == _folder_count(r_sh_depth_f)
+                == _folder_count(oh_rgb_f) == _folder_count(oh_depth_f)
+                == _folder_count(wrist_rgb_f) == _folder_count(wrist_depth_f)
+                == _folder_count(front_rgb_f) == _folder_count(front_depth_f)):
             raise RuntimeError('Broken dataset assumption')
 
         for i in range(num_steps):
